@@ -403,6 +403,9 @@ static CGPoint  delayOffset = {0.0};
         _voiceRecordHelper.peakPowerForChannel = ^(float peakPowerForChannel) {
             weakSelf.voiceRecordHUD.peakPower = peakPowerForChannel;
         };
+        _voiceRecordHelper.remainTime = ^(NSInteger remainTime) {
+            weakSelf.voiceRecordHUD.remainTime = remainTime;
+        };
         _voiceRecordHelper.maxRecordTime = kVoiceRecorderTotalTime;
     }
     return _voiceRecordHelper;

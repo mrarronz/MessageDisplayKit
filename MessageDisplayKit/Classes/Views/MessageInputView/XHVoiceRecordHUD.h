@@ -10,7 +10,8 @@
 
 @interface XHVoiceRecordHUD : UIView
 
-@property (nonatomic, assign) CGFloat peakPower;
+@property (nonatomic, assign) NSInteger remainTime; // 录音剩余时间
+@property (nonatomic, assign) CGFloat peakPower; // 录音时声音分贝大小
 
 /**
  *  开始显示录音HUD控件在某个view

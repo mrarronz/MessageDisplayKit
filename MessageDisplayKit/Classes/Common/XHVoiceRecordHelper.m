@@ -12,7 +12,7 @@
 
 @interface XHVoiceRecordHelper () <AVAudioRecorderDelegate> {
     NSTimer *_timer;
-    
+    NSTimer *_recordTimer;
     BOOL _isPause;
     
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
@@ -22,7 +22,7 @@
 
 @property (nonatomic, copy, readwrite) NSString *recordPath;
 @property (nonatomic, readwrite) NSTimeInterval currentTimeInterval;
-
+@property (nonatomic, readwrite) NSInteger remainRecordTime;
 @property (nonatomic, strong) AVAudioRecorder *recorder;
 
 @end
@@ -67,7 +67,7 @@
 }
 
 - (void)resetTimer {
-    if (!_timer)
+    if (!_timer && !_recordTimer)
         return;
     
     if (_timer) {
@@ -75,6 +75,10 @@
         _timer = nil;
     }
     
+    if (_recordTimer) {
+        [_recordTimer invalidate];
+        _recordTimer = nil;
+    }
 }
 
 - (void)cancelRecording {
@@ -155,6 +159,8 @@
     if ([_recorder record]) {
         [self resetTimer];
         _timer = [NSTimer scheduledTimerWithTimeInterval:0.05 target:self selector:@selector(updateMeters) userInfo:nil repeats:YES];
+        _remainRecordTime = kVoiceRecorderTotalTime;
+        _recordTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(updateCurrentLeftTime) userInfo:nil repeats:YES];
         if (startRecorderCompletion)
             dispatch_async(dispatch_get_main_queue(), ^{
                 startRecorderCompletion();
@@ -240,12 +246,19 @@
         double ALPHA = 0.015;
         double peakPowerForChannel = pow(10, (ALPHA * peakPower));
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            // 更新扬声器
-            if (_peakPowerForChannel) {
-                _peakPowerForChannel(peakPowerForChannel);
-            }
-        });
+        // 返回录音剩余时间
+        if (self.remainRecordTime <= 10) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                _remainTime(self.remainRecordTime);
+            });
+        } else {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                // 更新扬声器
+                if (_peakPowerForChannel) {
+                    _peakPowerForChannel(peakPowerForChannel);
+                }
+            });
+        }
         
         if (self.currentTimeInterval > self.maxRecordTime) {
             [self stopRecord];
@@ -256,6 +269,16 @@
     });
 }
 
+/// 实时更新当前录音的剩余时间
+- (void)updateCurrentLeftTime {
+    if (self.remainRecordTime >= 0) {
+        self.remainRecordTime --;
+    } else {
+        [_recordTimer invalidate];
+        _recordTimer = nil;
+    }
+}
+
 - (void)getVoiceDuration:(NSString*)recordPath {
     NSError *error = nil;
     AVAudioPlayer *play = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:recordPath] error:&error];
@@ -264,7 +287,7 @@
         self.recordDuration = @"";
     } else {
         DLog(@"时长:%f", play.duration);
-        self.recordDuration = [NSString stringWithFormat:@"%.1f", play.duration];
+        self.recordDuration = [NSString stringWithFormat:@"%d", (int)roundf(play.duration)];
     }
 }
 

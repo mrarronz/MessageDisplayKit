@@ -11,6 +11,7 @@
 @interface XHVoiceRecordHUD ()
 
 @property (nonatomic, weak) UILabel *remindLabel;
+@property (nonatomic, weak) UILabel *remainTimeLabel;
 @property (nonatomic, weak) UIImageView *microPhoneImageView;
 @property (nonatomic, weak) UIImageView *cancelRecordImageView;
 @property (nonatomic, weak) UIImageView *recordingHUDImageView;
@@ -82,9 +83,14 @@
 }
 
 - (void)configRecoding:(BOOL)recording {
-    self.microPhoneImageView.hidden = !recording;
-    self.recordingHUDImageView.hidden = !recording;
-    self.cancelRecordImageView.hidden = recording;
+    if (self.remainTime > 0) {
+        [self configViewsWithRemainTime:self.remainTime];
+    } else {
+        self.microPhoneImageView.hidden = !recording;
+        self.recordingHUDImageView.hidden = !recording;
+        self.cancelRecordImageView.hidden = recording;
+        self.remainTimeLabel.hidden = recording;
+    }
 }
 
 - (void)configRecordingHUDImageWithPeakPower:(CGFloat)peakPower {
@@ -109,9 +115,22 @@
     self.recordingHUDImageView.image = [UIImage imageNamed:imageName];
 }
 
+- (void)configViewsWithRemainTime:(NSInteger)remainTime {
+    self.microPhoneImageView.hidden = YES;
+    self.recordingHUDImageView.hidden = YES;
+    self.cancelRecordImageView.hidden = YES;
+    self.remainTimeLabel.hidden = NO;
+    self.remainTimeLabel.text = @(remainTime).stringValue;
+}
+
 - (void)setPeakPower:(CGFloat)peakPower {
     _peakPower = peakPower;
     [self configRecordingHUDImageWithPeakPower:peakPower];
+}
+
+- (void)setRemainTime:(NSInteger)remainTime {
+    _remainTime = remainTime;
+    [self configViewsWithRemainTime:remainTime];
 }
 
 - (void)setup {
@@ -159,6 +178,16 @@
         cancelRecordImageView.contentMode = UIViewContentModeScaleToFill;
         [self addSubview:cancelRecordImageView];
         _cancelRecordImageView = cancelRecordImageView;
+    }
+    
+    if (!_remainTimeLabel) {
+        UILabel *remainTimeLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 120, 110)];
+        remainTimeLabel.backgroundColor = [UIColor clearColor];
+        remainTimeLabel.textColor = [UIColor whiteColor];
+        remainTimeLabel.textAlignment = NSTextAlignmentCenter;
+        remainTimeLabel.font = [UIFont systemFontOfSize:60];
+        [self addSubview:remainTimeLabel];
+        _remainTimeLabel = remainTimeLabel;
     }
 }
 
